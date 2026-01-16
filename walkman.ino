@@ -2,53 +2,104 @@
 
 BluetoothA2DPSink a2dp_sink;
 
+// Button pin
+const int BUTTON = 0;  // GPIO0 (BOOT button)
+
+// Button state tracking
+bool lastButtonState = HIGH;
+bool isPlaying = false;
+
+// Multi-click detection
+unsigned long lastPress = 0;
+unsigned long clickWindow = 400; // 400ms window between clicks
+int clickCount = 0;
+bool processingClicks = false;
+
+// Connection tracking
+bool isConnected = false;
+
 void avrc_metadata_callback(uint8_t id, const uint8_t *text) {
   Serial.printf("Metadata - ID: 0x%x, Value: %s\n", id, text);
-  
-  // Metadata attribute IDs:
-  // 0x1 = Title
-  // 0x2 = Artist  
-  // 0x4 = Album
-  // 0x7 = Track Number
 }
 
-// Empty audio callback - we don't process audio
 void read_data_stream(const uint8_t *data, uint32_t length) {
-  // Do nothing - just discard the audio data
+  // Discard audio data
+}
+
+void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
+  if (state == ESP_A2D_CONNECTION_STATE_CONNECTED) {
+    isConnected = true;
+    Serial.println("✓ Bluetooth Connected");
+  } else {
+    isConnected = false;
+    Serial.println("✗ Bluetooth Disconnected");
+  }
 }
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
   
-  // Set the audio callback to our empty function
+  // Setup button with internal pull-up
+  pinMode(BUTTON, INPUT_PULLUP);
+  
   a2dp_sink.set_stream_reader(read_data_stream, false);
-  
-  // Set metadata callback to receive track info
   a2dp_sink.set_avrc_metadata_callback(avrc_metadata_callback);
-  
-  // Enable AVRCP metadata attribute notifications
-  a2dp_sink.set_avrc_metadata_attribute_mask(ESP_AVRC_MD_ATTR_TITLE | 
-                                              ESP_AVRC_MD_ATTR_ARTIST | 
-                                              ESP_AVRC_MD_ATTR_ALBUM);
+  a2dp_sink.set_on_connection_state_changed(connection_state_changed);
   
   a2dp_sink.start("ESP32_Remote");
+  Serial.println("ESP32 Bluetooth Remote Ready!");
+  Serial.println("1 click = Play/Pause");
+  Serial.println("2 clicks = Next Track");
+  Serial.println("3 clicks = Previous Track");
 }
 
 void loop() {
-  // Control playback
-  delay(5000);
-  a2dp_sink.pause();
-  Serial.println("Paused");
+  // Handle button press
+  bool buttonState = digitalRead(BUTTON);
   
-  delay(2000);
-  a2dp_sink.play();
-  Serial.println("Playing");
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    delay(50); // Debounce
+    if (digitalRead(BUTTON) == LOW) {
+      clickCount++;
+      lastPress = millis();
+      processingClicks = true;
+      Serial.printf("Click %d\n", clickCount);
+    }
+  }
+  lastButtonState = buttonState;
   
-  delay(5000);
-  a2dp_sink.next();
-  Serial.println("Next track");
+  // Check if click window expired - execute command based on click count
+  if (processingClicks && (millis() - lastPress) > clickWindow) {
+    if (isConnected) {
+      if (clickCount == 1) {
+        // Single click - Play/Pause
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+          a2dp_sink.play();
+          Serial.println("▶ Play");
+        } else {
+          a2dp_sink.pause();
+          Serial.println("⏸ Pause");
+        }
+      } else if (clickCount == 2) {
+        // Double click - Next Track
+        Serial.println("⏭ Next Track");
+        delay(100);
+        a2dp_sink.next();
+      } else if (clickCount >= 3) {
+        // Triple click - Previous Track
+        Serial.println("⏮ Previous Track");
+        delay(100);
+        a2dp_sink.previous();
+      }
+    } else {
+      Serial.println("Not connected!");
+    }
+    
+    clickCount = 0;
+    processingClicks = false;
+  }
   
-  delay(5000);
-  a2dp_sink.previous();
-  Serial.println("Previous track");
+  delay(10);
 }
