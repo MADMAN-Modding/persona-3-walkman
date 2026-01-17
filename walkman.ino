@@ -18,7 +18,7 @@ bool processingClicks = false;
 bool isConnected = false;
 
 // Playstate tracking
-bool isPlaying = true;
+bool isPlaying = false;
 
 void avrc_metadata_callback(uint8_t id, const uint8_t *text) {
   // Only print the metadata we care about
@@ -34,10 +34,6 @@ void avrc_metadata_callback(uint8_t id, const uint8_t *text) {
       break;
       // Ignore 0x8, 0x10, 0x20 and other IDs
   }
-}
-
-void read_data_stream(const uint8_t *data, uint32_t length) {
-  // Discard audio data
 }
 
 void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
@@ -57,21 +53,25 @@ void setup() {
   // Setup button with internal pull-up
   pinMode(BUTTON, INPUT_PULLUP);
 
-  a2dp_sink.set_stream_reader(read_data_stream, false);
+  // Configure I2S pins for audio output
+  // Default pins are: BCK=26, WS=25, DATA=22
+  // BCK (bit clock) = GPIO 26
+  // WS (word select) = GPIO 25  
+  // DATA = GPIO 22
+
   a2dp_sink.set_avrc_metadata_callback(avrc_metadata_callback);
   a2dp_sink.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
   a2dp_sink.set_on_connection_state_changed(connection_state_changed);
 
-
-  // Only request Title, Artist, and Album metadata
   a2dp_sink.set_avrc_metadata_attribute_mask(
     ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST | ESP_AVRC_MD_ATTR_ALBUM);
 
   // Enable auto-reconnect to last device
   a2dp_sink.set_auto_reconnect(true);
 
-  a2dp_sink.start("Remote_Only_No_Audio");
-  Serial.println("ESP32 Bluetooth Remote Ready!");
+  a2dp_sink.start("P3R Walkman");
+  Serial.println("ESP32 Bluetooth Audio Receiver Ready!");
+  Serial.println("Audio output via I2S (GPIO 26=BCK, 25=WS, 22=DATA)");
   Serial.println("Auto-reconnect enabled");
   Serial.println("1 click = Play/Pause");
   Serial.println("2 clicks = Next Track");
@@ -127,23 +127,11 @@ void loop() {
       if (clickCount == 1) {
         // Single click - Toggle play/pause
         Serial.println("⏯ Toggle Play/Pause");
-        // Send the AVRCP PAUSE passthrough command - acts as toggle on most devices
-        bool previousIsPlaying = isPlaying;
+        
         if (isPlaying) {
           esp_avrc_ct_send_passthrough_cmd(0, ESP_AVRC_PT_CMD_PAUSE, ESP_AVRC_PT_CMD_STATE_PRESSED);
         } else {
           esp_avrc_ct_send_passthrough_cmd(0, ESP_AVRC_PT_CMD_PLAY, ESP_AVRC_PT_CMD_STATE_PRESSED);
-        }
-
-        delay(200);
-
-        // Checks to make sure that the music state did change
-        if (previousIsPlaying == isPlaying) {
-          if (isPlaying) {
-            esp_avrc_ct_send_passthrough_cmd(0, ESP_AVRC_PT_CMD_PAUSE, ESP_AVRC_PT_CMD_STATE_PRESSED);
-          } else {
-            esp_avrc_ct_send_passthrough_cmd(0, ESP_AVRC_PT_CMD_PLAY, ESP_AVRC_PT_CMD_STATE_PRESSED);
-          }
         }
       } else if (clickCount == 2) {
         // Double click - Next Track
