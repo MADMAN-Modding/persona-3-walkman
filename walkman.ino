@@ -54,6 +54,16 @@ String currentTitle = "";
 String currentArtist = "";
 String currentAlbum = "";
 
+const unsigned char PROGMEM pauseIcon[] = {
+  0b01101100,
+  0b01101100,
+  0b01101100,
+  0b01101100,
+  0b01101100,
+  0b01101100,
+  0b01101100
+};
+
 void updateDisplay() {
   display.clearDisplay();
   display.setTextSize(1);
@@ -70,7 +80,12 @@ void updateDisplay() {
   } else {
     // Show play/pause symbol (stays in place)
     display.setCursor(0, 0);
-    display.print(isPlaying ? ">" : "||");
+    if (isPlaying) {
+      display.print("\x10");
+    } else {
+      display.drawBitmap(0, 0, pauseIcon, 8, 7, SSD1306_WHITE);
+    }
+
     display.print(" ");
     
     // Show track info with scrolling title
