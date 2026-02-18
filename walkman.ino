@@ -1,14 +1,13 @@
 #include "BluetoothA2DPSink.h"
-#include "driver/i2s.h"
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "playback.h"
+#include "bluetooth.h"
 
 BluetoothA2DPSink a2dp_sink;
 
-#define I2S_DOUT  22
-#define I2S_BCLK  26
-#define I2S_LRC   25
+
 
 // OLED Display settings
 #define SCREEN_WIDTH 128
@@ -25,7 +24,7 @@ bool scrollPaused = true;
 unsigned long scrollPauseStart = 0;
 int maxChars = 18;  // Max characters that fit after symbol (21 - 3)
 
-// Default I2C pins for ESP32
+//I2C pins for ESP32
 #define I2C_SDA 21
 #define I2C_SCL 19
 
@@ -202,11 +201,6 @@ void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
   }
 }
 
-void read_data_stream(const uint8_t *data, uint32_t length) {
-  size_t bytes_written;
-  i2s_write(I2S_NUM_0, data, length, &bytes_written, portMAX_DELAY);
-}
-
 void avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback) {
   switch (playback) {
     case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_STOPPED:
@@ -264,33 +258,10 @@ void setup() {
 
   pinMode(BUTTON, INPUT_PULLUP);
 
-  // Configure I2S
-  i2s_config_t i2s_config = {
-    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-    .sample_rate = 44100,
-    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-    .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-    .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_STAND_I2S),
-    .intr_alloc_flags = 0,
-    .dma_buf_count = 8,
-    .dma_buf_len = 64,
-    .use_apll = false,
-    .tx_desc_auto_clear = true,
-    .fixed_mclk = 0
-  };
+  // Audio setup
+  playback::setup();
 
-  i2s_pin_config_t pin_config = {
-    .bck_io_num = I2S_BCLK,
-    .ws_io_num = I2S_LRC,
-    .data_out_num = I2S_DOUT,
-    .data_in_num = -1
-  };
-
-  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-  i2s_set_pin(I2S_NUM_0, &pin_config);
-  i2s_zero_dma_buffer(I2S_NUM_0);
-
-  a2dp_sink.set_stream_reader(read_data_stream, false);
+  a2dp_sink.set_stream_reader(playback::handle_audio, false);
   a2dp_sink.set_avrc_metadata_callback(avrc_metadata_callback);
   a2dp_sink.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
   a2dp_sink.set_on_connection_state_changed(connection_state_changed);
