@@ -1,13 +1,8 @@
-#include "BluetoothA2DPSink.h"
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "playback.h"
 #include "bluetooth.h"
-
-BluetoothA2DPSink a2dp_sink;
-
-
 
 // OLED Display settings
 #define SCREEN_WIDTH 128
@@ -163,43 +158,9 @@ void updateDisplay() {
   display.display();
 }
 
-void avrc_metadata_callback(uint8_t id, const uint8_t *text) {
-  switch (id) {
-    case 0x1:
-      currentTitle = cleanText(String((char*)text));
-      Serial.printf("♫ Title: %s\n", text);
-      scrollPosition = 0;
-      scrollPaused = true;
-      scrollPauseStart = millis();
-      updateDisplay();
-      break;
-    case 0x2:
-      currentArtist = cleanText(String((char*)text));
-      Serial.printf("♫ Artist: %s\n", text);
-      updateDisplay();
-      break;
-    case 0x4:
-      currentAlbum = cleanText(String((char*)text));
-      Serial.printf("♫ Album: %s\n", text);
-      updateDisplay();
-      break;
-  }
-}
 
-void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
-  if (state == ESP_A2D_CONNECTION_STATE_CONNECTED) {
-    isConnected = true;
-    Serial.println("✓ Bluetooth Connected");
-    updateDisplay();
-  } else {
-    isConnected = false;
-    currentTitle = "";
-    currentArtist = "";
-    currentAlbum = "";
-    Serial.println("✗ Bluetooth Disconnected");
-    updateDisplay();
-  }
-}
+
+
 
 void avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback) {
   switch (playback) {
@@ -261,16 +222,8 @@ void setup() {
   // Audio setup
   playback::setup();
 
-  a2dp_sink.set_stream_reader(playback::handle_audio, false);
-  a2dp_sink.set_avrc_metadata_callback(avrc_metadata_callback);
-  a2dp_sink.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
-  a2dp_sink.set_on_connection_state_changed(connection_state_changed);
-  a2dp_sink.set_avrc_metadata_attribute_mask(
-    ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST | ESP_AVRC_MD_ATTR_ALBUM);
-  a2dp_sink.set_auto_reconnect(true);
-  a2dp_sink.start("Waiting for bluetooth on P3R Walkman");
-  delay(500);  // Wait for A2DP to initialize
-  a2dp_sink.set_volume(12);  // 6/127 ≈ 5%
+  // Bluetooth setup
+  bluetooth::setup();
   
   Serial.println("ESP32 Bluetooth Audio Receiver Ready!");
   Serial.println("1 click = Play/Pause");
@@ -278,21 +231,6 @@ void setup() {
   Serial.println("3 clicks = Previous Track");
   
   updateDisplay();
-}
-
-String cleanText(String text) {
-  text.replace("â€™", "'");  // Right single quote
-  text.replace("â€˜", "'");  // Left single quote
-  text.replace("â€œ", "\""); // Left double quote
-  text.replace("â€", "\"");  // Right double quote
-  text.replace("â€", "-");  // Em dash
-  text.replace("â€", "-");  // En dash
-  text.replace("Ã©", "e");
-  text.replace("Ã¡", "a");
-  text.replace("Ã³", "o");
-  text.replace("Ã­", "i");
-  text.replace("Ãº", "u");
-  return text;
 }
 
 void loop() {
@@ -322,10 +260,10 @@ void loop() {
         }
       } else if (clickCount == 2) {
         Serial.println("⏭ Next Track");
-        a2dp_sink.next();
+        bluetooth::next();
       } else if (clickCount >= 3) {
         Serial.println("⏮ Previous Track");
-        a2dp_sink.previous();
+        bluetooth::previous();
       }
     } else {
       Serial.println("Not connected!");
