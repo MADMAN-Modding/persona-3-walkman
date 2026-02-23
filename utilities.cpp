@@ -12,5 +12,7 @@ String utilities::cleanText(String text) {
   text.replace("Ã³", "o");
   text.replace("Ã­", "i");
   text.replace("Ãº", "u");
+  text.replace("：", ":");
+  text.replace("’", "'");
   return text;
 }
