@@ -18,7 +18,7 @@ static String currentAlbum = "";
 /// @brief Position for tracking the position of the text
 static int scrollPosition = 0;
 /// @brief Is the scroll paused
-static bool scrollPaused = false;
+static bool scrollPaused = true;
 /// @brief Used to detect if the scroll direction should be left or right
 static bool scrollLeft = true;
 /// @brief Time stamp for current pause on scroll (millis)
@@ -201,6 +201,7 @@ void screen::updateDisplay() {
 
 void screen::setTrack(String track) {
   currentTrack = track;
+  scrollPauseStart = millis(); 
 }
 
 void screen::setAlbum(String album) {
