@@ -3,8 +3,7 @@
 #include "screen.h"
 
 // Button pin
-const int BUTTON = 15; 
-
+const int BUTTON = 15;
 // Button state tracking
 bool lastButtonState = HIGH;
 
@@ -22,13 +21,13 @@ void setup() {
 
   // Audio setup
   playback::setup();
-  
+
   // Screen setup
   screen::setup();
 
   // Bluetooth setup
   bluetooth::setup();
-  
+
   Serial.println("ESP32 Bluetooth Audio Receiver Ready!");
   Serial.println("1 click = Play/Pause");
   Serial.println("2 clicks = Next Track");
@@ -40,7 +39,7 @@ void loop() {
 
   // Detect button press (HIGH to LOW transition)
   if (buttonState == LOW && lastButtonState == HIGH) {
-    delay(50);  // Debounce
+    delay(50);                         // Debounce
     if (digitalRead(BUTTON) == LOW) {  // Confirm it's still pressed
       clickCount++;
       lastPress = millis();

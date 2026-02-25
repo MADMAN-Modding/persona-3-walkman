@@ -24,10 +24,12 @@ void bluetooth::setup() {
 
 void bluetooth::next() {
   a2dp_sink.next();
+  screen::draw_next_arrow();
 }
 
 void bluetooth::previous() {
   a2dp_sink.previous();
+  screen::draw_back_animation();
 }
 
 void bluetooth::setPlaying(bool playing)
@@ -46,15 +48,15 @@ bool bluetooth::getConnected() {
 void bluetooth::avrc_metadata_callback(uint8_t id, const uint8_t *text) {
   switch (id) {
     case 0x1:
-      screen::setTrack(utilities::cleanText(String((char*)text)));
+      screen::set_track(utilities::cleanText(String((char*)text)));
       Serial.printf("♫ Title: %s\n", text);
       break;
     case 0x2:
-      screen::setArtist(utilities::cleanText(String((char*)text)));
+      screen::set_artist(utilities::cleanText(String((char*)text)));
       Serial.printf("♫ Artist: %s\n", text);
       break;
     case 0x4:
-      screen::setAlbum(utilities::cleanText(String((char*)text)));
+      screen::set_album(utilities::cleanText(String((char*)text)));
       Serial.printf("♫ Album: %s\n", text);
       break;
   }
@@ -66,9 +68,9 @@ void bluetooth::connection_state_changed(esp_a2d_connection_state_t state, void 
     Serial.println("Bluetooth Connected");
   } else {
     isConnected = false;
-    screen::setTrack("");
-    screen::setArtist("");
-    screen::setAlbum("");
+    screen::set_track("");
+    screen::set_artist("");
+    screen::set_album("");
     Serial.println("Bluetooth Disconnected");
   }
 }

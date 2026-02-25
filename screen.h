@@ -9,14 +9,17 @@ public:
 
   static void updateDisplay();
 
+  static void set_track(String track);
 
-  static void setTrack(String track);
+  static void set_album(String album);
 
-  static void setAlbum(String album);
-
-  static void setArtist(String artist);
+  static void set_artist(String artist);
 
   static void avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback);
+
+  static void draw_next_arrow();
+
+  static void draw_back_animation();
 
 private:
   /// @brief Milliseconds between scroll steps
