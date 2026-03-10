@@ -2,6 +2,7 @@
 #include "playback.h"
 #include "utilities.h"
 #include "screen.h"
+#include <Arduino.h>
 
 static BluetoothA2DPSink a2dp_sink;
 
@@ -12,7 +13,7 @@ static bool isPlaying = false;
 void bluetooth::setup() {
   a2dp_sink.set_stream_reader(playback::handle_audio, false);
   a2dp_sink.set_avrc_metadata_callback(avrc_metadata_callback);
-  a2dp_sink.set_avrc_rn_playstatus_callback(screen::avrc_rn_playstatus_callback);
+  a2dp_sink.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
   a2dp_sink.set_on_connection_state_changed(connection_state_changed);
   a2dp_sink.set_avrc_metadata_attribute_mask(
     ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST | ESP_AVRC_MD_ATTR_ALBUM);
@@ -24,17 +25,22 @@ void bluetooth::setup() {
 
 void bluetooth::next() {
   a2dp_sink.next();
-  screen::draw_next_arrow();
+  screen::set_animation_state(screen::animation_control::NEXT);
 }
 
 void bluetooth::previous() {
   a2dp_sink.previous();
-  screen::draw_back_animation();
+  screen::set_animation_state(screen::animation_control::BACK);
 }
 
 void bluetooth::setPlaying(bool playing)
 {
   isPlaying = playing;
+  if (!playing) {
+    screen::set_animation_state(screen::animation_control::PAUSE);
+  } else if (screen::get_animation_state() == screen::animation_control::PAUSE) {
+    screen::set_animation_state(screen::animation_control::NONE);
+  }
 }
 
 bool bluetooth::getPlaying() {
@@ -46,6 +52,8 @@ bool bluetooth::getConnected() {
 }
 
 void bluetooth::avrc_metadata_callback(uint8_t id, const uint8_t *text) {
+  setPlaying(true);
+
   switch (id) {
     case 0x1:
       screen::set_track(utilities::cleanText(String((char*)text)));
@@ -73,4 +81,32 @@ void bluetooth::connection_state_changed(esp_a2d_connection_state_t state, void 
     screen::set_album("");
     Serial.println("Bluetooth Disconnected");
   }
+}
+
+void bluetooth::avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback) {
+	switch (playback) {
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_STOPPED:
+			Serial.println("Stopped.");
+			bluetooth::setPlaying(false);
+      break;
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_PLAYING:
+			Serial.println("Playing.");
+			bluetooth::setPlaying(true);
+      break;
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_PAUSED:
+			Serial.println("Paused.");
+			bluetooth::setPlaying(false);
+			break;
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_FWD_SEEK:
+			Serial.println("Forward seek.");
+			break;
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_REV_SEEK:
+			Serial.println("Reverse seek.");
+			break;
+		case esp_avrc_playback_stat_t::ESP_AVRC_PLAYBACK_ERROR:
+			Serial.println("Error.");
+			break;
+		default:
+			Serial.printf("Got unknown playback status %d\n", playback);
+	}
 }

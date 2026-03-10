@@ -1,10 +1,16 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <BluetoothA2DPSink.h>
 
 class screen {
 public:
+  enum animation_control {
+    NEXT,
+    BACK,
+    PAUSE,
+    NONE
+  };
+
   static void setup();
 
   static void updateDisplay();
@@ -15,11 +21,9 @@ public:
 
   static void set_artist(String artist);
 
-  static void avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback);
+  static void set_animation_state(animation_control animaiton);
 
-  static void draw_next_arrow();
-
-  static void draw_back_animation();
+  static animation_control get_animation_state();
 
 private:
   /// @brief Milliseconds between scroll steps
@@ -28,6 +32,14 @@ private:
   static const int maxChars = 18;  // Max characters that fit after symbol (21 - 3)
   
   static void setScrollPosition(int pose);
+
+  static void metadata_display();
+
+  static void draw_next_arrow();
+
+  static void draw_back_animation();
+
+  static void draw_pause_animation();
 
   static void resetScrollPosition() {
     setScrollPosition(0);
