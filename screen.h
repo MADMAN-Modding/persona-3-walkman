@@ -21,7 +21,7 @@ public:
 
   static void set_artist(String artist);
 
-  static void set_animation_state(animation_control animaiton);
+  static void set_animation_state(animation_control animation);
 
   static animation_control get_animation_state();
 
@@ -31,8 +31,6 @@ private:
   static const unsigned long scrollPauseTime = 3000;  // 3 seconds pause at start
   static const int maxChars = 18;  // Max characters that fit after symbol (21 - 3)
   
-  static void setScrollPosition(int pose);
-
   static void metadata_display();
 
   static void draw_next_arrow();
@@ -40,8 +38,4 @@ private:
   static void draw_back_animation();
 
   static void draw_pause_animation();
-
-  static void resetScrollPosition() {
-    setScrollPosition(0);
-  };
 };

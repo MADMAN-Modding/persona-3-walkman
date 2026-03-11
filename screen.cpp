@@ -54,7 +54,7 @@ void screen::setup() {
 		display.setCursor(0, 0);
 		display.println("P3R WALKMAN");
 		display.setTextSize(1);
-		display.println("Starting...");
+		display.println("Starting");
 		display.display();
 		delay(1000);
 	}
@@ -66,8 +66,10 @@ void screen::set_animation_state(screen::animation_control new_animation) {
 }
 
 void screen::updateDisplay() {
-	if (!bluetooth::getPlaying()) {
+	if (!bluetooth::getPlaying() && bluetooth::getConnected()) {
 		animation = animation_control::PAUSE;
+	} else if (!bluetooth::getConnected()) {
+		animation = animation_control::NONE;
 	}
 
 	switch (animation) {
@@ -96,7 +98,7 @@ void screen::metadata_display() {
 		display.setTextSize(1);
 		display.println("P3R WALKMAN");
 		display.setTextSize(1);
-		display.println("Waiting for Bluetooth...");
+		display.println("Waiting for Bluetooth");
 		scrollPosition = 0;
 		scrollPaused = true;
 	} else {
