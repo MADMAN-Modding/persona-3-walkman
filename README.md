@@ -1,5 +1,7 @@
 A walkman recreation from Persona 3 Reload, this houses the code and the CAD files used for the project.
 
+TinkerCAD for the project: https://www.tinkercad.com/things/3wiR84wO8FR-p3r-walkman?sharecode=eSi62Vn1PayIH7bjHtMnBbmx03ptWrpDzYkkxDJMQZI
+
 Materials
 
 Sparkfun ESP 32
